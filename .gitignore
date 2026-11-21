@@ -1,0 +1,18 @@
+# 本地产物 / 中间文件
+_src/
+_probe/
+*.asar
+app.zh*.asar
+*.log
+node_modules/
+dist/
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+
+# 探针输出
+asar-list.txt
+*.txt
