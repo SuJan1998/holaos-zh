@@ -28,8 +28,18 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1
 **方式 B：一行命令（不需要手动下载）**
 
 ```powershell
-powershell -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/SuJan1998/holaos-zh/main/install.ps1 | iex"
+powershell -ExecutionPolicy Bypass -Command "iwr https://raw.githubusercontent.com/SuJan1998/holaos-zh/main/install.ps1 -OutFile $env:TEMP\holaos-zh-install.ps1; & $env:TEMP\holaos-zh-install.ps1"
 ```
+
+要带参数就接在后面，例如先预编译包试试：
+
+```powershell
+powershell -ExecutionPolicy Bypass -Command "iwr https://raw.githubusercontent.com/SuJan1998/holaos-zh/main/install.ps1 -OutFile $env:TEMP\holaos-zh-install.ps1; & $env:TEMP\holaos-zh-install.ps1 -Prebuilt"
+```
+
+> 为什么不用 `irm … | iex`：`install.ps1` 存的是 **UTF-8 with BOM**（Windows PowerShell 5.1
+> 需要它才不把中文按 GBK 解码），而带 BOM 的文本走 `iex` 会因 BOM 出现在 `param()` 之前而报
+> `Unexpected token 'param'`。落盘再 `&` 调用两个问题都没有。
 
 安装脚本会：定位 holaOS → 备份原版 `app.asar` 为 `app.asar.orig` → 构建中文 asar → 结构校验 →
 换入 → 启动。**不需要预装 Node**：没有 `node` 时用 `holaOS.exe` 自带的 Electron 运行时构建。
