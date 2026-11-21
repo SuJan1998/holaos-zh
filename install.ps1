@@ -18,6 +18,10 @@
 .PARAMETER AsarPath
     直接使用现成的中文 asar，跳过构建。
 
+.PARAMETER Prebuilt
+    不本机构建，直接下载 Release 里预编译好的 asar（约 504 MB），校验 SHA256 后安装。
+    适合构建失败、或想完全跳过构建流程的机器。
+
 .PARAMETER NoStart
     只安装，不启动。
 
@@ -29,11 +33,15 @@
 
 .EXAMPLE
     .\install.ps1 -Clean -NoStart
+
+.EXAMPLE
+    .\install.ps1 -Prebuilt
 #>
 [CmdletBinding()]
 param(
     [string]$AppDir,
     [string]$AsarPath,
+    [switch]$Prebuilt,
     [switch]$NoStart,
     [switch]$Clean
 )
@@ -46,6 +54,9 @@ try {
 
 $RepoSlug  = 'SuJan1998/holaos-zh'
 $RepoBranch = 'main'
+$ReleaseTag = 'v2026.822.1'
+$PrebuiltName = 'app.zh.v7.asar'
+$PrebuiltSha  = 'b82366d45c56a3a444a343dfcb3258c1de355d0ea530fa6c4de16a6168c62fb5'
 $CacheDir  = Join-Path $env:LOCALAPPDATA 'holaos-zh'
 $CacheAsar = Join-Path $CacheDir 'app.zh.asar'
 $StatePath = Join-Path $CacheDir 'state.json'
@@ -184,6 +195,43 @@ if ($AsarPath) {
     if (-not (Test-Path $AsarPath)) { Die "找不到指定的 asar：$AsarPath" }
     Say ("  asar      " + $AsarPath + '  (given)') 'DarkGray'
     $SourceAsar = (Resolve-Path $AsarPath).Path
+} elseif ($Prebuilt.IsPresent) {
+    Say ''
+    Say '  [1/3] download' 'Cyan'
+    if (Test-Path $CacheAsar) {
+        Say ("  asar      " + $CacheAsar + '  (cached)') 'DarkGray'
+    } else {
+        $url = "https://github.com/$RepoSlug/releases/download/$ReleaseTag/$PrebuiltName"
+        Say ("  url       " + $url) 'DarkGray'
+        $tmpOut = "$CacheAsar.tmp"
+        if (Test-Path $tmpOut) { Remove-Item $tmpOut -Force }
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+        try {
+            $wc = New-Object Net.WebClient
+            $wc.Headers.Add('User-Agent', 'holaos-zh-installer')
+            $wc.DownloadFile($url, $tmpOut)
+        } catch {
+            Die ("下载失败：" + $_.Exception.Message + "  去掉 -Prebuilt 改用本机构建试试")
+        }
+        $got = (Get-FileHash $tmpOut -Algorithm SHA256).Hash.ToLower()
+        if ($got -ne $PrebuiltSha) {
+            Remove-Item $tmpOut -Force
+            Die ("SHA256 不匹配，已丢弃下载：`n  期望 $PrebuiltSha`n  实际 $got")
+        }
+        Say ("  sha256    ok") 'DarkGray'
+        Move-Item $tmpOut $CacheAsar -Force
+    }
+    $o = Get-Item $Orig
+    @{
+        appDir     = $AppDir
+        srcSize    = $o.Length
+        srcMtime   = $o.LastWriteTimeUtc.ToString('o')
+        zhAsarSize = (Get-Item $CacheAsar).Length
+        builtAt    = (Get-Date).ToString('o')
+        repoRev    = "release:$ReleaseTag"
+    } | ConvertTo-Json | Set-Content $StatePath -Encoding utf8
+    Say ("  asar      " + $CacheAsar + '  (' + ('{0:N0}' -f (Get-Item $CacheAsar).Length) + ' B)') 'DarkGray'
+    $SourceAsar = $CacheAsar
 } else {
     $needBuild = $Clean.IsPresent -or -not (Test-Path $CacheAsar)
     if (-not $needBuild -and $state) {
@@ -208,7 +256,7 @@ if ($AsarPath) {
             '--stats'
         )
         if ($code -ne 0 -or -not (Test-Path $tmpOut)) {
-            Die ("构建失败，完整日志：" + $BuildLog)
+            Die ("构建失败，完整日志：" + $BuildLog + "`n    也可以跳过构建，直接用预编译包：.\install.ps1 -Prebuilt")
         }
         Move-Item $tmpOut $CacheAsar -Force
         $o = Get-Item $Orig

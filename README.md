@@ -42,6 +42,26 @@ powershell -ExecutionPolicy Bypass -File .\uninstall.ps1
 
 或用原版安装包修复安装。
 
+## 预编译包
+
+不想本机构建（或构建失败）时，直接用 [Release](https://github.com/SuJan1998/holaos-zh/releases/tag/v2026.822.1) 里针对
+**holaOS 2026.822.1** 编译好的 `app.zh.v7.asar`（504,054,705 B，约 480 MiB）：
+
+```powershell
+.\install.ps1 -Prebuilt          # 下载 + 校验 SHA256 + 安装
+```
+
+```text
+app.zh.v7.asar
+SHA256 b82366d45c56a3a444a343dfcb3258c1de355d0ea530fa6c4de16a6168c62fb5
+```
+
+也可以手动下载后用 `install.ps1 -AsarPath .\app.zh.v7.asar`，或按
+[Release 说明](https://github.com/SuJan1998/holaos-zh/releases/tag/v2026.822.1) 里的步骤直接替换文件。
+
+注意：预编译包只对应它标注的那个 holaOS 版本。holaOS 升级后请去掉 `-Prebuilt` 走本机构建，
+或等新的 Release。
+
 ## 已汉化范围（基于 holaOS 2026.822.1）
 
 - 侧栏全部：新对话 / 发现 / 项目 / 自动化 / 频道 / 浏览器 / 自定义 / HolaApps / 企业版 / 奖励 / 设置
@@ -149,7 +169,8 @@ Start-Process "$env:LocalAppData\Programs\holaOS\holaOS.exe"
 
 **支持 macOS / Linux 吗**
 补丁算法本身与平台无关（`tools/zh-build.mjs` 是纯 Node 脚本），但安装脚本目前只写了 Windows。
-macOS 可以手动跑：
+macOS 最省事的是从 Release 下载 `app.zh.v7.asar`（版本要对得上）直接替换；
+要自己构建则：
 
 ```bash
 node tools/zh-build.mjs --src "/Applications/holaOS.app/Contents/Resources/app.asar" \
