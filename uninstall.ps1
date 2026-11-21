@@ -70,6 +70,13 @@ if ($procs.Count) {
 Copy-Item $Orig $Asar -Force
 Write-Host ("已还原原版 app.asar (" + ('{0:N0}' -f (Get-Item $Asar).Length) + ' B)') -ForegroundColor Green
 
+$cacheDir = Join-Path $env:LOCALAPPDATA 'holaos-zh'
+if (Test-Path $cacheDir) {
+    $sum = (Get-ChildItem $cacheDir -Recurse -File -ErrorAction SilentlyContinue | Measure-Object Length -Sum).Sum
+    Write-Host ("缓存保留：" + $cacheDir + "  (" + [math]::Round($sum / 1MB, 1) + " MB)") -ForegroundColor DarkGray
+    Write-Host ("  不需要可删：Remove-Item `"" + $cacheDir + "`" -Recurse -Force") -ForegroundColor DarkGray
+}
+
 if ($NoStart) { exit 0 }
 
 Remove-Item Env:\ELECTRON_RUN_AS_NODE -ErrorAction SilentlyContinue

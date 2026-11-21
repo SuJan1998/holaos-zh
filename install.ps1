@@ -321,6 +321,7 @@ for ($i = 0; $i -lt 120; $i++) {
         Say ("  done.  t=" + [math]::Round($i * 0.5, 1) + 's  procs=' + $p.Count) 'Green'
         Say '  侧栏 / 设置 / 新建对话 / 项目页 已是中文。' 'DarkGray'
         Say '  回滚：.\uninstall.ps1' 'DarkGray'
+        Say ("  缓存 " + $CacheDir + '（下次装可复用，不需要可删）') 'DarkGray'
         exit 0
     }
 }
